@@ -96,7 +96,9 @@ textarea.io{width:100%;min-height:90px;background:var(--fill);border:0;border-ra
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px;border-radius:10px;background:var(--fill);margin:0 0 16px}
 .seg button{padding:7px;border-radius:8px;font-size:15px;font-weight:500}
 .seg button[aria-pressed="true"]{background:var(--segsel);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.14)}
-.chart{display:block;width:100%;height:auto;overflow:visible}
+.chartscroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none}
+.chartscroll::-webkit-scrollbar{display:none}
+.chart{display:block;overflow:visible;max-width:none}
 .chart text{font:11px var(--font);fill:var(--muted)}
 .chart text.sel{fill:var(--fg);font-weight:600}
 .chart .bar{transform-box:fill-box;transform-origin:50% 100%}
@@ -367,44 +369,70 @@ function shortNum(v){return Math.round(v).toLocaleString('en-US').replace(/,/g,'
 function segHtml(){
   return '<div class="seg" role="tablist">'+[['out','ხარჯები'],['in','შემოსავალი']].map(function(x){return '<button data-act="sumview" data-v="'+x[0]+'" aria-pressed="'+((ui.sumView||'out')===x[0])+'">'+x[1]+'</button>'}).join('')+'</div>';
 }
-function barChart(items,color){
-  var W=320,H=170,base=138,top=28,bw=30,step=W/items.length,max=1;
-  items.forEach(function(x){if(x.v>max)max=x.v});
-  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="თვეების დინამიკა"><line x1="0" y1="'+base+'" x2="'+W+'" y2="'+base+'" stroke="var(--line)" stroke-width="1"/>';
-  items.forEach(function(it,i){
-    var x=step*i+(step-bw)/2,h=it.v>0?Math.max(3,(base-top)*it.v/max):0,y=base-h,sel=it.m===ui.month;
-    s+='<g data-act="pickmonth" data-m="'+it.m+'" style="cursor:pointer"><rect x="'+(step*i)+'" y="0" width="'+step+'" height="'+H+'" fill="transparent"/>'+
-      (h?'<rect class="bar" x="'+x+'" y="'+y+'" width="'+bw+'" height="'+h+'" rx="7" fill="'+color+'" fill-opacity="'+(sel?1:.3)+'" style="animation-delay:'+(i*70)+'ms"/>':'')+
-      '<text x="'+(x+bw/2)+'" y="'+(y-7)+'" text-anchor="middle"'+(sel?' class="sel"':'')+'>'+(it.v>0?shortNum(it.v):'')+'</text>'+
-      '<text x="'+(x+bw/2)+'" y="'+(base+19)+'" text-anchor="middle"'+(sel?' class="sel"':'')+'>'+MONTHS[+it.m.slice(5)-1].slice(0,3)+'</text></g>';
-  });
-  return s+'</svg>';
+function monthRange(){
+  var min=curMonth;
+  S.expenses.forEach(function(e){var m=e.date.slice(0,7);if(m<min)min=m});
+  var a=[],m=min;
+  while(m<=curMonth){a.push(m);m=shiftM(m,1)}
+  while(a.length<6)a.unshift(shiftM(a[0],-1));
+  if(a.length>36)a=a.slice(-36);
+  return a;
 }
-function last6(){var a=[];for(var i=5;i>=0;i--)a.push(shiftM(ui.month,-i));return a}
+function barChart(items,color){
+  var step=56,bw=30,H=182,base=138,top=28,W=step*items.length,max=1,sel=-1;
+  items.forEach(function(x,i){if(x.v>max)max=x.v;if(x.m===ui.month)sel=i});
+  var s='<div class="chartscroll" data-sel="'+sel+'" data-step="'+step+'"><svg class="chart" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="თვეების დინამიკა"><line x1="0" y1="'+base+'" x2="'+W+'" y2="'+base+'" stroke="var(--line)" stroke-width="1"/>';
+  items.forEach(function(it,i){
+    var x=step*i+(step-bw)/2,h=it.v>0?Math.max(3,(base-top)*it.v/max):0,y=base-h,isel=it.m===ui.month,mo=it.m.slice(5);
+    s+='<g data-act="pickmonth" data-m="'+it.m+'" style="cursor:pointer"><rect x="'+(step*i)+'" y="0" width="'+step+'" height="'+H+'" fill="transparent"/>'+
+      (h?'<rect class="bar" x="'+x+'" y="'+y+'" width="'+bw+'" height="'+h+'" rx="7" fill="'+color+'" fill-opacity="'+(isel?1:.3)+'" style="animation-delay:'+(Math.min(i,8)*70)+'ms"/>':'')+
+      '<text x="'+(x+bw/2)+'" y="'+(y-7)+'" text-anchor="middle"'+(isel?' class="sel"':'')+'>'+(it.v>0?shortNum(it.v):'')+'</text>'+
+      '<text x="'+(x+bw/2)+'" y="'+(base+19)+'" text-anchor="middle"'+(isel?' class="sel"':'')+'>'+MONTHS[+mo-1].slice(0,3)+'</text>'+
+      ((mo==='01'||i===0)?'<text x="'+(x+bw/2)+'" y="'+(base+35)+'" text-anchor="middle">'+it.m.slice(0,4)+'</text>':'')+'</g>';
+  });
+  return s+'</svg></div>';
+}
+function incKeys(){
+  var t={};
+  S.expenses.forEach(function(e){if(e.type==='in'){var k=(e.note||'შემოსავალი').trim();t[k]=(t[k]||0)+e.amt}});
+  return Object.keys(t).sort(function(a,b){return t[b]-t[a]}).slice(0,10);
+}
+function incMatch(e){var s=ui.incSrc;return !s||s==='ALL'||((e.note||'შემოსავალი').trim()===s)}
 function incomeHtml(){
-  var vals=last6().map(function(m){return {m:m,v:sum(monthInc(m))}});
-  var cur=vals[5].v,prev=vals[4].v,nz=vals.filter(function(x){return x.v>0}),avg=nz.length?sum(nz.map(function(x){return {amt:x.v}}))/nz.length:0;
-  var entries=monthInc(ui.month).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
-  var spent=sum(monthExp(ui.month)),kept=cur>0?Math.round((cur-spent)/cur*100):null,dlt=cur-prev;
-  var h='';
-  if(!nz.length){
+  var keys=incKeys();
+  if(!keys.length){
     return '<div class="card empty"><b>შემოსავალი ჯერ არ გაქვს ჩაწერილი</b>დააჭირე ლურჯ ღილაკს და ახალ ჩანაწერში აირჩიე კატეგორია „შემოსავალი“. აქ გამოჩნდება თვეების დინამიკა.</div>';
   }
+  if(ui.incSrc===undefined){var ev=keys.filter(function(k){return /ევოლუშენ/i.test(k)})[0];ui.incSrc=ev||'ALL'}
+  if(ui.incSrc!=='ALL'&&keys.indexOf(ui.incSrc)<0)ui.incSrc='ALL';
+  var months=monthRange(),idx=months.indexOf(ui.month);
+  var vals=months.map(function(m){return {m:m,v:sum(monthInc(m).filter(incMatch))}});
+  var cur=idx>=0?vals[idx].v:0,prev=idx>0?vals[idx-1].v:0,dlt=cur-prev;
+  var nz=vals.filter(function(x){return x.v>0}),avg=nz.length?nz.reduce(function(t,x){return t+x.v},0)/nz.length:0,best=0;
+  vals.forEach(function(x){if(x.v>best)best=x.v});
+  var mi=monthInc(ui.month),totalCur=sum(mi),spent=sum(monthExp(ui.month));
+  var kept=totalCur>0?Math.round((totalCur-spent)/totalCur*100):null;
+  var entries=mi.filter(incMatch).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
+  var chips='<button class="chip" data-act="incsrc" data-i="-1" aria-pressed="'+(ui.incSrc==='ALL')+'">ყველა</button>'+
+    keys.map(function(k,i){return '<button class="chip" data-act="incsrc" data-i="'+i+'" aria-pressed="'+(ui.incSrc===k)+'"><span class="qt">'+esc(k)+'</span></button>'}).join('');
+  var h='<div class="quick" style="padding:0 0 14px;margin:0">'+chips+'</div>';
   h+='<div class="section"><div class="card"><div class="hero"><div class="k">შემოსავალი · '+mLabel(ui.month)+'</div><div class="big num" style="color:var(--good)" data-count="'+cur+'">'+money(cur)+'</div>'+
-    '<div class="sub">'+(prev>0?'წინა თვესთან '+(dlt>0?'+':dlt<0?'−':'')+money(Math.abs(dlt)):'წინა თვეში შემოსავალი არ არის')+'</div></div>'+
-    '<div class="stats"><div><b class="num">'+money(Math.round(avg))+'</b><span>საშუალოდ თვეში</span></div><div><b class="num">'+money(Math.max.apply(null,vals.map(function(x){return x.v})))+'</b><span>საუკეთესო თვე</span></div><div><b class="num">'+(kept===null?'—':kept+'%')+'</b><span>რჩება ხარჯის შემდეგ</span></div></div></div></div>';
-  h+='<div class="section"><h2>შემოსავლის დინამიკა · 6 თვე</h2><div class="card" style="padding:12px 12px 8px">'+barChart(vals,'var(--good)')+'</div></div>';
-  if(entries.length){
+    '<div class="sub">'+(prev>0?'წინა თვესთან '+(dlt>0?'+':dlt<0?'−':'')+money(Math.abs(dlt)):'წინა თვეში ამ წყაროდან შემოსავალი არ არის')+'</div></div>'+
+    '<div class="stats"><div><b class="num">'+money(Math.round(avg))+'</b><span>საშუალოდ თვეში</span></div><div><b class="num">'+money(best)+'</b><span>საუკეთესო თვე</span></div><div><b class="num">'+(kept===null?'—':kept+'%')+'</b><span>რჩება ხარჯის შემდეგ</span></div></div></div></div>';
+  h+='<div class="section"><h2>შემოსავლის დინამიკა · გადაფურცლე</h2><div class="card" style="padding:12px 0 8px">'+barChart(vals,'var(--good)')+'</div></div>';
+  if(ui.incSrc==='ALL'&&mi.length){
     var src={},order=[];
-    entries.forEach(function(e){var k=(e.note||'შემოსავალი').trim();if(!(k in src)){src[k]=0;order.push(k)}src[k]+=e.amt});
+    mi.forEach(function(e){var k=(e.note||'შემოსავალი').trim();if(!(k in src)){src[k]=0;order.push(k)}src[k]+=e.amt});
     order.sort(function(a,b){return src[b]-src[a]});
     if(order.length>1){
       h+='<div class="section"><h2>წყაროები</h2><div class="card">';
-      order.forEach(function(k){var pc=cur?src[k]/cur*100:0;
+      order.forEach(function(k){var pc=totalCur?src[k]/totalCur*100:0;
         h+='<div class="row" style="display:block"><div style="display:flex;gap:12px"><span class="grow t">'+esc(k)+'</span><span class="amt num">'+money(src[k])+'</span></div><div class="catbar"><i style="width:'+pc+'%;background:var(--good)"></i></div><div class="sub num" style="margin-top:4px">'+Math.round(pc)+'% შემოსავლიდან</div></div>';
       });
       h+='</div></div>';
     }
+  }
+  if(entries.length){
     h+='<div class="section"><h2>ჩანაწერები</h2><div class="card">';
     entries.forEach(function(e){h+='<button class="row" data-act="edit" data-id="'+e.id+'"><span class="grow"><div class="t">'+esc(e.note||'შემოსავალი')+'</div><div class="sub">'+dayLabel(e.date)+'</div></span><span class="amt num" style="color:var(--good)">+'+money(e.amt)+'</span></button>'});
     h+='</div></div>';
@@ -442,7 +470,7 @@ function vSum(){
   h+='<div class="section"><div class="card"><div class="hero"><div class="k">დარჩენილი</div><div class="big num'+(left<0?' neg':'')+'" data-count="'+left+'">'+money(left)+'</div>'+
     '<div class="track">'+(seg||'')+'</div><div class="cap"><span>დახარჯულია '+(inc?Math.round(spent/inc*100):0)+'%</span><span class="num">'+(inc?'შემოსავალი '+money(inc):'შემოსავალი არ არის მითითებული')+'</span></div></div>'+
     '<div class="stats"><div><b class="num">'+money(spent)+'</b><span>ხარჯი</span></div><div><b class="num">'+money(avg)+'</b><span>საშუალოდ დღეში</span></div><div><b class="num">'+money(proj)+'</b><span>'+(isCur?'თვის პროგნოზი':'სულ')+'</span></div></div></div></div>';
-  h+='<div class="section"><h2>ხარჯის დინამიკა · 6 თვე</h2><div class="card" style="padding:12px 12px 8px">'+barChart(last6().map(function(m){return {m:m,v:sum(monthExp(m))}}),'var(--accent)')+'</div></div>';
+  h+='<div class="section"><h2>ხარჯის დინამიკა · გადაფურცლე</h2><div class="card" style="padding:12px 0 8px">'+barChart(monthRange().map(function(m){return {m:m,v:sum(monthExp(m))}}),'var(--accent)')+'</div></div>';
   if(isCur&&inc&&proj>inc){h+='<div class="banner" style="background:color-mix(in srgb,var(--bad) 14%,var(--card))"><span class="grow">ამ ტემპით თვის ბოლოს '+money(proj-inc)+'-ით გადააჭარბებ შემოსავალს.</span></div>'}
   var prevM=shiftM(ui.month,-1),pl=monthExp(prevM);
   if(isCur)pl=pl.filter(function(e){return +e.date.slice(8,10)<=now.getDate()});
@@ -573,6 +601,13 @@ function render(){
     app.className='a-'+ui.anim;
     var els=app.querySelectorAll('[data-count]');for(k=0;k<els.length;k++)countUp(els[k]);
     ui.anim=null;
+  }
+  var chs=app.querySelector('.chartscroll');
+  if(chs){
+    var cst=+chs.dataset.step,csi=+chs.dataset.sel;
+    if(ui.chartScroll!==undefined)chs.scrollLeft=ui.chartScroll;
+    else if(csi>=0)chs.scrollLeft=Math.max(0,csi*cst+cst/2-chs.clientWidth/2);
+    else chs.scrollLeft=chs.scrollWidth;
   }
   if(lastTab!==ui.tab)document.getElementById('tabs').innerHTML=TABS.map(function(t){
     return '<button class="tab" role="tab" aria-selected="'+(ui.tab===t.id)+'" data-tab="'+t.id+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+t.i+'</svg>'+t.n+'</button>';
@@ -751,13 +786,13 @@ document.addEventListener('pointerup',endSwipe);
 document.addEventListener('pointercancel',endSwipe);
 document.addEventListener('click',function(ev){
   var t=ev.target.closest('[data-act],[data-tab]');if(!t)return;
-  if(t.dataset.tab){if(ui.tab!==t.dataset.tab)ui.anim='tab';ui.tab=t.dataset.tab;ui.confirmClear=false;render();window.scrollTo(0,0);return}
+  if(t.dataset.tab){if(ui.tab!==t.dataset.tab){ui.anim='tab';ui.chartScroll=undefined}ui.tab=t.dataset.tab;ui.confirmClear=false;render();window.scrollTo(0,0);return}
   var a=t.dataset.act;
   if(a==='closeSheet'){if(t.classList.contains('scrim')&&ev.target!==t)return;
     ui.sheet=null;ui.ls=null;render();
     return}
-  if(a==='prev'){ui.month=shiftM(ui.month,-1);render()}
-  else if(a==='next'){if(ui.month<curMonth){ui.month=shiftM(ui.month,1);render()}}
+  if(a==='prev'){ui.chartScroll=undefined;ui.month=shiftM(ui.month,-1);render()}
+  else if(a==='next'){if(ui.month<curMonth){ui.chartScroll=undefined;ui.month=shiftM(ui.month,1);render()}}
   else if(a==='edit'){
     if(Date.now()-lastSwipe<350)return;
     var swp=t.parentNode;if(swp&&swp.classList&&swp.classList.contains('open')){closeSwipes();return}
@@ -784,8 +819,9 @@ document.addEventListener('click',function(ev){
     render();
     var qf=document.getElementById('q');if(qf&&ui.focusQ){try{qf.focus()}catch(e){}}ui.focusQ=false;
   }
-  else if(a==='sumview'){if((ui.sumView||'out')!==t.dataset.v){ui.sumView=t.dataset.v;render()}}
-  else if(a==='pickmonth'){if(t.dataset.m!==ui.month){ui.month=t.dataset.m;render()}}
+  else if(a==='sumview'){if((ui.sumView||'out')!==t.dataset.v){ui.sumView=t.dataset.v;ui.chartScroll=undefined;render()}}
+  else if(a==='pickmonth'){if(t.dataset.m!==ui.month){var pcs=document.querySelector('.chartscroll');ui.chartScroll=pcs?pcs.scrollLeft:undefined;ui.month=t.dataset.m;render()}}
+  else if(a==='incsrc'){var iks=incKeys(),ii=+t.dataset.i;ui.incSrc=ii<0?'ALL':iks[ii];var ics=document.querySelector('.chartscroll');ui.chartScroll=ics?ics.scrollLeft:undefined;render()}
   else if(a==='dailycat'){ui.dailyCat=t.dataset.cat||null;render()}
   else if(a==='quick'){var qi=quickList()[+t.dataset.i];if(qi){readSheet();var qe=ui.sheet.e;qe.note=qi.note;qe.cat=qi.cat;qe.amt=qi.amt;qe.type='out';render()}}
   else if(a==='gobackup'){ui.tab='plan';ui.anim='tab';render();window.scrollTo(0,document.body.scrollHeight)}
@@ -920,6 +956,9 @@ document.addEventListener('change',function(ev){
   var bs=document.querySelectorAll('#modal [data-act="pick"]');
   for(var i=0;i<bs.length;i++)bs[i].setAttribute('aria-pressed',String(bs[i].dataset.cat===m.cat));
 });
+document.addEventListener('scroll',function(ev){
+  var t=ev.target;if(t&&t.classList&&t.classList.contains('chartscroll'))ui.chartScroll=t.scrollLeft;
+},true);
 document.addEventListener('visibilitychange',function(){
   if(!document.hidden&&ymd(new Date())!==todayStr&&!ui.sheet&&!ui.ls)location.reload();
 });
