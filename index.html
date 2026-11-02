@@ -208,6 +208,16 @@ body{padding-block-end:150px}
 .xp{display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;transition:grid-template-rows .38s cubic-bezier(.2,.8,.2,1),opacity .28s,visibility 0s .38s}
 .xp.open{grid-template-rows:1fr;opacity:1;visibility:visible;transition-delay:0s}
 .xp>div{overflow:hidden;min-height:0}
+.pbar{display:flex;gap:2px;height:12px;border-radius:6px;overflow:hidden;background:var(--fill)}
+.pbar i{display:block;min-width:3px;transition:flex-basis .3s}
+.plrow{display:flex;align-items:center;gap:12px;padding:9px 16px;min-height:54px;position:relative;width:100%}
+.plrow+.plrow::before{content:"";position:absolute;top:0;left:60px;right:0;border-top:.5px solid var(--line)}
+.plrow .grow{flex:1;min-width:0}
+.pin{display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:104px;padding:7px 12px;border-radius:12px;background:var(--fill)}
+.pin:focus-within{box-shadow:0 0 0 2px var(--accent)}
+.pin input{width:76px;padding:0;border:0;outline:0;background:transparent;text-align:right;font:inherit;font-weight:600;color:var(--fg);-webkit-appearance:none;appearance:none}
+.pin .unit{color:var(--muted)}
+.pin.auto{background:transparent;font-weight:600;padding-right:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -305,6 +315,7 @@ function dayLabel(s){
   var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);return DAYS[d.getDay()]+', '+(+p[2])+' '+MONTHS[+p[1]-1].slice(0,3)+'.'+(+p[0]!==now.getFullYear()?' '+p[0]:'');
 }
 function totalBudget(){var t=0;for(var k in S.budgets)t+=+S.budgets[k]||0;return t}
+function loanMonthTotal(){var t=0;(S.loans||[]).forEach(function(l){var st=loanStats(l);var pm=sum(st.rep.filter(function(e){return e.date.slice(0,7)===curMonth}));if(st.rem>0||pm>0)t+=Math.min(st.monthly,st.rem+pm)});return t}
 
 function monthNav(){
   var atMax=ui.month>=curMonth,p=ui.month.split('-');
@@ -537,14 +548,16 @@ function vSum(){
 }
 
 function vPlan(){
-  var tb=totalBudget(),inc=sum(monthInc(curMonth)),free=inc-tb;
+  var lm=loanMonthTotal(),tb=totalBudget()+lm,inc=sum(monthInc(curMonth)),free=inc-tb;
   var h='<h1>გეგმა</h1><div class="sub" style="margin:0 0 16px">თვიური ლიმიტები კატეგორიებზე. შემოსავალი ჩაწერე ხარჯის ფანჯარაში, კატეგორიაში „შემოსავალი“.</div>'+banner();
+  h+='<div class="section"><div class="card"><div class="hero" id="plansum" style="padding:16px 16px 14px">'+planSummary(inc)+'</div></div></div>';
   h+='<div class="section"><h2>ლიმიტები</h2><div class="card">';
   CATS.forEach(function(c){
     if(c.id==='loan')return;
-    h+='<div class="field">'+badge(c)+'<label for="b_'+c.id+'">'+c.n+'</label><input id="b_'+c.id+'" data-bind="b:'+c.id+'" inputmode="decimal" placeholder="0" value="'+(S.budgets[c.id]||'')+'"><span class="unit">₾</span></div>';
+    h+='<label class="plrow" for="b_'+c.id+'">'+badge(c)+'<span class="grow">'+c.n+'</span><span class="pin"><input id="b_'+c.id+'" data-bind="b:'+c.id+'" inputmode="decimal" placeholder="0" value="'+(S.budgets[c.id]||'')+'"><span class="unit">₾</span></span></label>';
   });
-  h+='</div><div class="foot num" id="planfoot">'+planFoot(tb,free,inc)+'</div></div>';
+  if(lm>0)h+='<div class="plrow">'+badge(cat('loan'))+'<span class="grow"><div>სესხები</div><div class="sub">ავტომატურად · სესხების ტაბიდან</div></span><span class="pin auto num">'+money(lm)+'</span></div>';
+  h+='</div></div>';
   h+='<div class="section"><h2>განმეორებადი ხარჯები</h2><div class="card">'+(S.recurring||[]).map(function(r){var c=cat(r.cat);return '<button class="row" data-act="editRecur" data-id="'+r.id+'">'+badge(c)+'<span class="grow"><div class="t">'+esc(r.note||c.n)+'</div><div class="sub">ყოველთვიურად · '+r.day+' რიცხვში</div></span><span class="amt num">'+money(r.amt)+'</span></button>'}).join('')+'<button class="row" data-act="newRecur" style="color:var(--accent)">+ დამატება</button></div><div class="foot">ქირა, გამოწერები და სხვა ყოველთვიური ხარჯი ავტომატურად ემატება ხარჯებში.</div></div>';
   h+='<div class="section"><h2>ბანკის ამონაწერი</h2><div class="card"><div class="stack"><div class="sub">ატვირთე Bank of Georgia-ს ამონაწერი (Excel). ფაილი მხოლოდ შენს ტელეფონში მუშავდება და არსად იგზავნება.</div>'+
     '<label class="btn" style="cursor:pointer">ამონაწერის ატვირთვა<input id="bankfile" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="position:absolute;opacity:0;width:0;height:0"></label></div></div></div>';
@@ -554,11 +567,12 @@ function vPlan(){
     '</div></div></div>';
   return h;
 }
-function planFoot(tb,free,inc){
-  if(!inc)return 'ამ თვეში შემოსავალი ჯერ არ გაქვს ჩაწერილი. დაგეგმილია '+money(tb)+'.';
-  return 'დაგეგმილია '+money(tb)+' · '+(free>=0?'გაუნაწილებელია '+money(free):'ლიმიტები შემოსავალს აღემატება '+money(-free)+'-ით');
+function planSummary(inc){
+  var lm=loanMonthTotal(),tb=totalBudget()+lm,free=inc-tb,den=Math.max(inc,tb),segs='';
+  if(den>0)CATS.forEach(function(c){var v=c.id==='loan'?lm:(+S.budgets[c.id]||0);if(v>0)segs+='<i style="flex:0 0 '+(v/den*100)+'%;background:'+c.c+'"></i>'});
+  var over=inc>0&&free<0;
+  return '<div class="k">'+(!inc?'დაგეგმილია':over?'ლიმიტები აღემატება შემოსავალს':'გაუნაწილებელია')+'</div><div class="big num'+(over?' neg':'')+'" style="font-size:40px;margin:2px 0 14px">'+money(!inc?tb:Math.abs(free))+'</div><div class="pbar">'+segs+'</div><div class="cap" style="margin-top:10px">'+(inc?'<span class="num">დაგეგმილია '+money(tb)+'</span><span class="num">შემოსავალი '+money(inc)+'</span>':'<span>შემოსავალი ამ თვეში ჯერ არ გაქვს ჩაწერილი</span>')+'</div>';
 }
-
 function loanById(id){return (S.loans||[]).filter(function(x){return x.id===id})[0]}
 function loanStats(l){
   var rep=S.expenses.filter(function(e){return e.loanId===l.id}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
@@ -938,7 +952,7 @@ document.addEventListener('input',function(ev){
   var v=num(ev.target.value)||0;
   S.budgets[b.slice(2)]=v;
   S.demo=S.demo;save();
-  var f=document.getElementById('planfoot');if(f){var tb=totalBudget(),inc=sum(monthInc(curMonth));f.textContent=planFoot(tb,inc-tb,inc)}
+  var f=document.getElementById('plansum');if(f)f.innerHTML=planSummary(sum(monthInc(curMonth)))
 });
 document.addEventListener('change',function(ev){
   if(ev.target.id==='bankfile'){
