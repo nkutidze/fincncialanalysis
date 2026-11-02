@@ -1,5 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>ჩემი ფინანსები</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;500;600;700&family=Noto+Serif+Georgian:wght@500;600;700&display=swap">
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: iOS grouped-list app. Large title, month switcher, inset cards, floating tab bar, bottom sheet for entry. */
@@ -104,12 +105,6 @@ textarea.io{width:100%;min-height:90px;background:var(--fill);border:0;border-ra
 .chart .bar{transform-box:fill-box;transform-origin:50% 100%}
 #app.a-tab .chart .bar{animation:growY .8s cubic-bezier(.2,.8,.2,1) both}
 @keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-.swipe{position:relative;overflow:hidden;background:var(--bad);user-select:none;-webkit-user-select:none}
-.swipe+.swipe::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--line);z-index:2}
-.swipe>.row{background:var(--card);position:relative;z-index:1;touch-action:pan-y}
-.swipe>.row::before{display:none}
-.swipe>.row:active{background:var(--fill)}
-.swipe>.del{position:absolute;top:0;right:0;bottom:0;width:88px;background:var(--bad);color:#fff;font-weight:600;font-size:16px;display:grid;place-items:center}
 input.sw{-webkit-appearance:none;appearance:none;width:51px;height:31px;min-width:51px;border-radius:16px;background:var(--fill);position:relative;flex:none;padding:0;border:0;margin:0;cursor:pointer}
 input.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 input.sw:checked{background:var(--good)}
@@ -188,6 +183,31 @@ input.sw:checked::after{left:22px}
 #app.a-tab .track i,#app.a-tab .catbar i{animation:grow .9s cubic-bezier(.2,.8,.2,1) both .15s}
 .card:has(>.hero){background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 9%,var(--card)),var(--card) 75%)}
 .fab:hover{box-shadow:0 8px 22px rgba(0,122,255,.45)}
+
+/* ---- Visual refresh ---- */
+:root{--serif:"Noto Serif Georgian","New York",ui-serif,Georgia,serif}
+h1{font-family:var(--serif);font-size:32px;font-weight:600;letter-spacing:-.01em;line-height:1.15}
+.card{border-radius:18px}
+.card:has(>.hero){border-radius:24px;background:linear-gradient(165deg,color-mix(in srgb,var(--accent) 9%,var(--card)),var(--card) 75%)}
+.section>h2,.daytitle,.hero .k{text-transform:none;letter-spacing:0;font-weight:600;font-size:13.5px}
+.section>h2,.daytitle{margin-left:4px;margin-right:4px}
+.hero .big{font-family:var(--serif);font-weight:600;font-size:48px;letter-spacing:-.015em}
+.track{height:10px;border-radius:5px}
+.ic{border-radius:10px}
+.chip{border-radius:20px}
+.amount input{font-family:var(--serif);font-weight:600}
+.sheet{border-radius:26px 26px 0 0}
+body{padding-block-end:150px}
+.tabbar{left:max(12px,calc(50% - 268px));right:max(12px,calc(50% - 268px));bottom:calc(10px + env(safe-area-inset-bottom,0px));border:.5px solid var(--line);border-radius:28px;padding:6px 8px;box-shadow:var(--shadow),0 14px 30px -12px rgba(0,0,0,.25)}
+.tabbar .in{max-width:none}
+.tab{border-radius:20px;padding:6px 0}
+.tab[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.fab{border-radius:20px;bottom:calc(92px + env(safe-area-inset-bottom,0px));box-shadow:0 10px 22px -6px color-mix(in srgb,var(--accent) 55%,transparent)}
+.fab:hover{box-shadow:0 12px 26px -6px color-mix(in srgb,var(--accent) 65%,transparent)}
+.toast{bottom:calc(160px + env(safe-area-inset-bottom,0px))}
+.xp{display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;transition:grid-template-rows .38s cubic-bezier(.2,.8,.2,1),opacity .28s,visibility 0s .38s}
+.xp.open{grid-template-rows:1fr;opacity:1;visibility:visible;transition-delay:0s}
+.xp>div{overflow:hidden;min-height:0}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -354,11 +374,11 @@ function daysList(){
     h+='<div class="section"><div class="daytitle"><span>'+dayLabel(d)+'</span><span class="num">'+(dsp?money(dsp):'')+'</span></div><div class="card">';
     groups[d].forEach(function(e){
       if(e.type==='in'){
-        h+='<div class="swipe"><button class="row" data-act="edit" data-id="'+e.id+'"><span class="dot" style="background:var(--good)"></span><span class="grow"><div class="t">'+esc(e.note||'შემოსავალი')+'</div><div class="sub">შემოსავალი</div></span><span class="amt num" style="color:var(--good)">+'+money(e.amt)+'</span></button><button class="del" data-act="swipedel" data-id="'+e.id+'">წაშლა</button></div>';
+        h+='<button class="row" data-act="edit" data-id="'+e.id+'"><span class="dot" style="background:var(--good)"></span><span class="grow"><div class="t">'+esc(e.note||'შემოსავალი')+'</div><div class="sub">შემოსავალი</div></span><span class="amt num" style="color:var(--good)">+'+money(e.amt)+'</span></button>';
         return;
       }
       var c=cat(e.cat);
-      h+='<div class="swipe"><button class="row'+(ui.flash===e.id?' flash':'')+'" data-act="edit" data-id="'+e.id+'">'+badge(c)+'<span class="grow"><div class="t">'+esc(e.note||c.n)+'</div><div class="sub">'+c.n+(e.recurId?' · განმეორებადი':'')+'</div></span><span class="amt num">−'+money(e.amt)+'</span></button><button class="del" data-act="swipedel" data-id="'+e.id+'">წაშლა</button></div>';
+      h+='<button class="row'+(ui.flash===e.id?' flash':'')+'" data-act="edit" data-id="'+e.id+'">'+badge(c)+'<span class="grow"><div class="t">'+esc(e.note||c.n)+'</div><div class="sub">'+c.n+(e.recurId?' · განმეორებადი':'')+'</div></span><span class="amt num">−'+money(e.amt)+'</span></button>';
     });
     h+='</div></div>';
   });
@@ -378,7 +398,7 @@ function vDays(){
       '<div class="card" style="padding:16px;min-width:0"><div style="font-size:13px;color:var(--muted)">'+dayK+'</div><div class="num" style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-count="'+dayV+'">'+money(dayV)+'</div></div>'+
       '<div class="card" style="padding:16px;min-width:0"><div style="font-size:13px;color:var(--muted)">თვეში დახარჯული</div><div class="num" style="font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-count="'+sum(list)+'">'+money(sum(list))+'</div></div></div>';
   }
-  return h+dailyCard()+'</div><div id="dayslist">'+daysList()+'</div>';
+  return h+(ui.month===curMonth?dailyCard():'')+'</div><div id="dayslist">'+daysList()+'</div>';
 }
 
 function shortNum(v){return Math.round(v).toLocaleString('en-US').replace(/,/g,' ')}
@@ -470,11 +490,12 @@ function dailyCard(){
     var todaySp=sum(dList.filter(function(e){return e.date===todayStr})),allow=dl>0?Math.max(0,(dLeft+todaySp)/dl):0,rest=allow-todaySp;
     var dchips='<button class="chip" data-act="dailycat" data-cat="" aria-pressed="'+!dcat+'">ყველა</button>';
     CATS.forEach(function(c){if(c.id==='loan'||!(+S.budgets[c.id]>0))return;dchips+='<button class="chip" data-act="dailycat" data-cat="'+c.id+'" aria-pressed="'+(!!dcat&&dcat.id===c.id)+'">'+badge(c)+'<span class="qt">'+c.n+'</span></button>'});
-    h+='<div class="section"><div class="card"><div class="hero" style="padding:16px 16px 12px"><div class="k">დღეს დარჩა'+(dcat?' · '+dcat.n:'')+'</div><div class="big num'+(rest<0?' neg':'')+'" style="font-size:34px;margin:2px 0 12px">'+money(rest)+'</div>'+
+    var fsvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></svg>';
+    h+='<div class="section"><div class="card"><div class="hero" data-act="dailytoggle" style="padding:16px 16px 14px;cursor:pointer"><div class="k" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>დღეს დარჩა'+(dcat?' · '+dcat.n:'')+' <span id="dc_chev" aria-hidden="true" style="display:inline-block;font-size:11px;transition:transform .3s;transform:rotate('+(ui.dailyOpen?180:0)+'deg)">▾</span></span><button class="iconbtn" data-act="dailyfilter" aria-label="კატეგორიის ფილტრი" aria-pressed="'+!!ui.dailyFilter+'" style="width:34px;height:34px;margin:-6px -6px 0 0">'+fsvg+'</button></div><div class="big num'+(rest<0?' neg':'')+'" style="font-size:34px;margin:2px 0 12px">'+money(rest)+'</div>'+
       '<div class="track"><i style="width:'+(allow?Math.min(100,todaySp/allow*100):100)+'%;background:'+(rest<0?'var(--bad)':'var(--accent)')+'"></i></div>'+
-      '<div class="cap"><span class="num">დღეს დახარჯულია '+money(todaySp)+'</span><span class="num">'+(dLeft<=0?(dcat?'ლიმიტი ამოიწურა':'თვის თანხა ამოიწურა'):'დღიური ლიმიტი '+money(allow))+'</span></div>'+
-      '<div class="sub num" style="margin-top:6px">'+(dcat?'თვის ლიმიტიდან დარჩა ':'დარჩენილი ')+money(dLeft)+' · თვის ბოლომდე '+dl+' დღე'+(est&&!dcat?' · წინა თვის შემოსავლის მიხედვით':'')+'</div></div>'+
-      '<div class="quick" style="padding:0 16px 14px;margin:0">'+dchips+'</div></div></div>';
+      '<div class="xp'+(ui.dailyOpen?' open':'')+'" id="dc_info"><div><div class="cap"><span class="num">დღეს დახარჯულია '+money(todaySp)+'</span><span class="num">'+(dLeft<=0?(dcat?'ლიმიტი ამოიწურა':'თვის თანხა ამოიწურა'):'დღიური ლიმიტი '+money(allow))+'</span></div>'+
+      '<div class="sub num" style="margin-top:6px">'+(dcat?'თვის ლიმიტიდან დარჩა ':'დარჩენილი ')+money(dLeft)+' · თვის ბოლომდე '+dl+' დღე'+(est&&!dcat?' · წინა თვის შემოსავლის მიხედვით':'')+'</div></div></div></div>'+
+      '<div class="xp'+(ui.dailyFilter?' open':'')+'" id="dc_cats"><div><div class="quick" style="padding:2px 16px 14px;margin:0">'+dchips+'</div></div></div></div></div>';
   }
   return h;
 }
@@ -500,15 +521,6 @@ function vSum(){
     crow.sort(function(a,b){return Math.abs(b.d)-Math.abs(a.d)});
     h+='<div class="section"><h2>წინა თვესთან შედარება</h2><div class="card"><div class="row" style="display:block"><div class="num" style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:'+(dlt>0?'var(--bad)':'var(--good)')+'">'+(dlt>0?'+':dlt<0?'−':'')+money(Math.abs(dlt))+'</div><div class="sub num">'+(isCur?'წინა თვის იმავე დღემდე':'წინა თვე')+' ('+money(pt)+') · '+(dlt>0?'მეტი':'ნაკლები')+' ხარჯი, '+Math.round(Math.abs(dlt)/pt*100)+'%</div></div>';
     crow.slice(0,4).forEach(function(r){h+='<div class="row">'+badge(r.c)+'<span class="grow t">'+r.c.n+'</span><span class="amt num" style="color:'+(r.d>0?'var(--bad)':'var(--good)')+'">'+(r.d>0?'+':'−')+money(Math.abs(r.d))+'</span></div>'});
-    h+='</div></div>';
-  }
-  var top=list.slice().sort(function(a,b){return b.amt-a.amt}).slice(0,5);
-  if(top.length){
-    h+='<div class="section"><h2>ტოპ 5 ხარჯი</h2><div class="card">';
-    top.forEach(function(e){
-      var c=cat(e.cat),p=e.date.split('-');
-      h+='<button class="row" data-act="edit" data-id="'+e.id+'">'+badge(c)+'<span class="grow"><div class="t">'+esc(e.note||c.n)+'</div><div class="sub">'+c.n+' · '+(+p[2])+' '+MONTHS[+p[1]-1].slice(0,3)+'.</div></span><span class="amt num">−'+money(e.amt)+'</span></button>';
-    });
     h+='</div></div>';
   }
   h+='<div class="section"><h2>კატეგორიების მიხედვით</h2><div class="card">';
@@ -559,9 +571,9 @@ function vLoans(){
   var h='<h1>სესხები</h1><div class="sub" style="margin:0 0 16px">დანაზოგიდან აღებული თანხა და მისი დაბრუნება.</div>'+banner();
   var newBtn='<button class="btn plain" data-act="newLoan" style="box-shadow:var(--shadow)">+ ახალი სესხი</button>';
   if(!loans.length)return h+'<div class="card empty"><b>სესხი ჯერ არ გაქვს</b>დაამატე აღებული თანხა და ჩარიცხვები ავტომატურად გამოჩნდება ხარჯებში.</div><div style="height:16px"></div>'+newBtn;
-  var totAll=0,totPaid=0,totRem=0;
-  var sts=loans.map(function(l){var st=loanStats(l);totAll+=l.total;totPaid+=st.paid;totRem+=st.rem;return st});
-  h+='<div class="section"><div class="card"><div class="hero"><div class="k">დასაბრუნებელია</div><div class="big num" data-count="'+totRem+'">'+money(totRem)+'</div><div class="track"><i style="width:'+(totAll?Math.min(100,totPaid/totAll*100):0)+'%;background:var(--good)"></i></div><div class="cap"><span class="num">დაბრუნებულია '+money(totPaid)+'</span><span class="num">სულ '+money(totAll)+'</span></div></div></div></div>';
+  var totAll=0,totPaid=0,totRem=0,totMonthly=0,totDue=0;
+  var sts=loans.map(function(l){var st=loanStats(l);totAll+=l.total;totPaid+=st.paid;totRem+=st.rem;if(st.rem>0){totMonthly+=st.monthly;totDue+=st.due}return st});
+  h+='<div class="section"><div class="card"><div class="hero"><div class="k">დასაბრუნებელია</div><div class="big num" data-count="'+totRem+'">'+money(totRem)+'</div><div class="track"><i style="width:'+(totAll?Math.min(100,totPaid/totAll*100):0)+'%;background:var(--good)"></i></div><div class="cap"><span class="num">დაბრუნებულია '+money(totPaid)+'</span><span class="num">სულ '+money(totAll)+'</span></div></div>'+(totRem>0?'<div class="stats" style="grid-template-columns:1fr"><div><b class="num">'+money(totDue)+'</b><span>ამ თვეში დარჩა გადასახდელი</span></div></div>':'')+'</div></div>';
   loans.forEach(function(l,i){
     var st=sts[i],done=st.rem<=0;
     h+='<div class="section"><div class="card">'+
@@ -786,41 +798,6 @@ function doImport(text){
 function toast(t){ui.toast=t;render();setTimeout(function(){ui.toast=null;var b=document.getElementById('toastbox');if(b)b.remove()},1800)}
 function num(v){return parseFloat(String(v).replace(/\s/g,'').replace(',','.'))}
 
-var SW=88,swipe=null,lastSwipe=0;
-function closeSwipes(except){
-  var o=document.querySelectorAll('.swipe.open');
-  for(var i=0;i<o.length;i++){if(o[i]!==except){o[i].classList.remove('open');o[i].firstChild.style.transform=''}}
-}
-document.addEventListener('pointerdown',function(ev){
-  var row=ev.target.closest&&ev.target.closest('.swipe>.row');
-  if(!row){if(!(ev.target.closest&&ev.target.closest('.del')))closeSwipes();return}
-  var sw=row.parentNode;closeSwipes(sw);
-  swipe={row:row,sw:sw,x:ev.clientX,y:ev.clientY,base:sw.classList.contains('open')?-SW:0,moved:false,t:0,id:ev.pointerId};
-});
-document.addEventListener('pointermove',function(ev){
-  if(!swipe||ev.pointerId!==swipe.id)return;
-  var dx=ev.clientX-swipe.x,dy=ev.clientY-swipe.y;
-  if(!swipe.moved){
-    if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){swipe=null;return}
-    if(Math.abs(dx)<8)return;
-    swipe.moved=true;
-  }
-  swipe.t=Math.max(-swipe.row.offsetWidth,Math.min(0,swipe.base+dx));
-  swipe.row.style.transform='translateX('+swipe.t+'px)';
-});
-function endSwipe(){
-  if(!swipe)return;var s=swipe;swipe=null;if(!s.moved)return;
-  lastSwipe=Date.now();
-  if(s.t<=-s.row.offsetWidth*0.5){
-    var did2=s.row.dataset.id;
-    S.expenses=S.expenses.filter(function(x){return x.id!==did2});
-    save();render();toast('წაიშალა');return;
-  }
-  var open=s.t<-SW/2;
-  s.sw.classList.toggle('open',open);s.row.style.transform=open?'translateX(-'+SW+'px)':'';
-}
-document.addEventListener('pointerup',endSwipe);
-document.addEventListener('pointercancel',endSwipe);
 document.addEventListener('click',function(ev){
   var t=ev.target.closest('[data-act],[data-tab]');if(!t)return;
   if(t.dataset.tab){if(ui.tab!==t.dataset.tab){ui.anim='tab';ui.chartScroll=undefined}ui.tab=t.dataset.tab;ui.confirmClear=false;render();window.scrollTo(0,0);return}
@@ -831,11 +808,8 @@ document.addEventListener('click',function(ev){
   if(a==='prev'){ui.chartScroll=undefined;ui.month=shiftM(ui.month,-1);render()}
   else if(a==='next'){if(ui.month<curMonth){ui.chartScroll=undefined;ui.month=shiftM(ui.month,1);render()}}
   else if(a==='edit'){
-    if(Date.now()-lastSwipe<350)return;
-    var swp=t.parentNode;if(swp&&swp.classList&&swp.classList.contains('open')){closeSwipes();return}
     openSheet(t.dataset.id);
   }
-  else if(a==='swipedel'){var did=t.dataset.id;S.expenses=S.expenses.filter(function(x){return x.id!==did});save();render();toast('წაიშალა')}
   else if(a==='pick'){readSheet();var pk=t.dataset.cat;ui.sheet.e.type=pk==='income'?'in':'out';ui.sheet.e.cat=pk;render()}
   else if(a==='type'){readSheet();ui.sheet.e.type=t.dataset.type;render()}
   else if(a==='monthpicker'){ui.ls={kind:'month',fresh:true,year:+ui.month.slice(0,4)};render()}
@@ -862,7 +836,9 @@ document.addEventListener('click',function(ev){
   else if(a==='sumview'){if((ui.sumView||'out')!==t.dataset.v){ui.sumView=t.dataset.v;ui.chartScroll=undefined;render()}}
   else if(a==='pickmonth'){if(t.dataset.m!==ui.month){var pcs=document.querySelector('.chartscroll');ui.chartScroll=pcs?pcs.scrollLeft:undefined;ui.month=t.dataset.m;render()}}
   else if(a==='incsrc'){var iks=incKeys(),ii=+t.dataset.i;ui.incSrc=ii<0?'ALL':iks[ii];var ics=document.querySelector('.chartscroll');ui.chartScroll=ics?ics.scrollLeft:undefined;render()}
-  else if(a==='dailycat'){ui.dailyCat=t.dataset.cat||null;render()}
+  else if(a==='dailytoggle'){ui.dailyOpen=!ui.dailyOpen;var dx=document.getElementById('dc_info');if(dx)dx.classList.toggle('open',ui.dailyOpen);var dv=document.getElementById('dc_chev');if(dv)dv.style.transform='rotate('+(ui.dailyOpen?180:0)+'deg)'}
+  else if(a==='dailyfilter'){ui.dailyFilter=!ui.dailyFilter;var dy=document.getElementById('dc_cats');if(dy)dy.classList.toggle('open',ui.dailyFilter);t.setAttribute('aria-pressed',String(!!ui.dailyFilter))}
+  else if(a==='dailycat'){ui.dailyCat=t.dataset.cat||null;ui.dailyFilter=false;var dz=document.getElementById('dc_cats');if(dz)dz.classList.remove('open');setTimeout(render,280)}
   else if(a==='quick'){var qi=quickList()[+t.dataset.i];if(qi){readSheet();var qe=ui.sheet.e;qe.note=qi.note;qe.cat=qi.cat;qe.amt=qi.amt;qe.type='out';render()}}
   else if(a==='gobackup'){ui.tab='plan';ui.anim='tab';render();window.scrollTo(0,document.body.scrollHeight)}
   else if(a==='snooze'){S.snooze=Date.now()+7*864e5;save();render()}
