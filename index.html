@@ -104,7 +104,7 @@ textarea.io{width:100%;min-height:90px;background:var(--fill);border:0;border-ra
 .chart .bar{transform-box:fill-box;transform-origin:50% 100%}
 #app.a-tab .chart .bar{animation:growY .8s cubic-bezier(.2,.8,.2,1) both}
 @keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-.swipe{position:relative;overflow:hidden;user-select:none;-webkit-user-select:none}
+.swipe{position:relative;overflow:hidden;background:var(--bad);user-select:none;-webkit-user-select:none}
 .swipe+.swipe::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--line);z-index:2}
 .swipe>.row{background:var(--card);position:relative;z-index:1;touch-action:pan-y}
 .swipe>.row::before{display:none}
@@ -115,6 +115,23 @@ input.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:
 input.sw:checked{background:var(--good)}
 input.sw:checked::after{left:22px}
 .field input.sw{width:51px;text-align:left}
+.titlerow{margin-bottom:12px}
+.titlegroup{display:flex;align-items:center;gap:8px;margin-top:10px;flex:none}
+.titlegroup .iconbtn{margin-top:0}
+.monthpill{display:flex;align-items:center;background:var(--fill);border-radius:20px;height:40px;flex:none}
+.monthpill .nav{width:30px;height:40px;display:grid;place-items:center;color:var(--accent)}
+.monthpill .nav[disabled]{opacity:.3}
+.monthpill .lbl{padding:0 2px;font-size:15px;font-weight:600;color:var(--fg);height:40px;white-space:nowrap}
+.sheet.compact{height:auto;max-height:90%}
+.yearrow{display:flex;align-items:center;justify-content:center;gap:24px;font-size:22px;margin:4px 0 16px}
+.yearrow button{width:44px;height:44px;border-radius:50%;background:var(--fill);color:var(--accent);font-size:26px;line-height:1}
+.yearrow button[disabled]{opacity:.3}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding-bottom:12px}
+.mcell{position:relative;height:56px;border-radius:14px;background:var(--card);font-size:17px;font-weight:500;box-shadow:var(--shadow)}
+.mcell.sel{background:var(--accent);color:var(--accent-fg)}
+.mcell[disabled]{opacity:.3}
+.mcell i{position:absolute;left:50%;bottom:8px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--accent)}
+.mcell.sel i{background:#fff}
 .titlerow{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .iconbtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--accent);background:var(--fill);margin-top:10px;flex:none}
 .iconbtn svg{width:20px;height:20px}
@@ -270,10 +287,10 @@ function dayLabel(s){
 function totalBudget(){var t=0;for(var k in S.budgets)t+=+S.budgets[k]||0;return t}
 
 function monthNav(){
-  var atMax=ui.month>=curMonth;
-  return '<div class="months"><button class="nav" data-act="prev" aria-label="წინა თვე"><svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg></button>'+
-  '<span class="label">'+mLabel(ui.month)+'</span>'+
-  '<button class="nav" data-act="next" aria-label="შემდეგი თვე"'+(atMax?' disabled':'')+'><svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m2 2 8 8-8 8"/></svg></button></div>';
+  var atMax=ui.month>=curMonth,p=ui.month.split('-');
+  return '<div class="monthpill"><button class="nav" data-act="prev" aria-label="წინა თვე"><svg width="10" height="16" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg></button>'+
+  '<button class="lbl" data-act="monthpicker" aria-label="თვის და წლის არჩევა">'+MONTHS[+p[1]-1].slice(0,3)+' '+p[0]+'</button>'+
+  '<button class="nav" data-act="next" aria-label="შემდეგი თვე"'+(atMax?' disabled':'')+'><svg width="10" height="16" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m2 2 8 8-8 8"/></svg></button></div>';
 }
 function banner(){
   return S.demo?'<div class="banner"><span class="grow">ეს ნიმუშის მონაცემებია. გასუფთავების შემდეგ დაიწყე შენი ხარჯების შეყვანა.</span><button data-act="clearDemo">გასუფთავება</button></div>':'';
@@ -350,9 +367,8 @@ function daysList(){
 function vDays(){
   var q=(ui.q||'').trim(),all=monthAll(ui.month),list=all.filter(function(e){return e.type!=='in'});
   var open=!!ui.searchOpen||!!q;
-  var h='<div class="titlerow"><h1>ხარჯები</h1><button class="iconbtn" data-act="togglesearch" aria-label="ძებნა" aria-pressed="'+open+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button></div>'+
+  var h='<div class="titlerow"><h1>ხარჯები</h1><div class="titlegroup">'+monthNav()+'<button class="iconbtn" data-act="togglesearch" aria-label="ძებნა" aria-pressed="'+open+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button></div></div>'+
     (open?'<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="ძებნა" value="'+esc(ui.q||'')+'" aria-label="ძებნა"></div>':'')+
-    monthNav()+
     '<div id="daycards"'+(q?' hidden':'')+'>'+banner()+backupBanner();
   if(all.length){
     var isCurM=ui.month===curMonth,dayV,dayK;
@@ -440,10 +456,13 @@ function incomeHtml(){
   return h;
 }
 function dailyCard(){
-  if(ui.month!==curMonth)return '';
-
-  var list=monthExp(curMonth),spent=sum(list),inc=sum(monthInc(curMonth)),left=inc-spent,dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(),h='';
+  var list=monthExp(curMonth),spent=sum(list),inc=sum(monthInc(curMonth)),est=false,dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate(),h='';
+  if(!inc){
+    var rg=monthRange();
+    for(var ri=rg.length-2;ri>=0;ri--){var pi=sum(monthInc(rg[ri]));if(pi>0){inc=pi;est=true;break}}
+  }
   if(!inc)return '';
+  var left=inc-spent;
   {
     var dl=dim-now.getDate()+1,dcat=ui.dailyCat&&(+S.budgets[ui.dailyCat]||0)>0?cat(ui.dailyCat):null;
     var dList=list.filter(function(e){return !dcat||e.cat===dcat.id});
@@ -454,7 +473,7 @@ function dailyCard(){
     h+='<div class="section"><div class="card"><div class="hero" style="padding:16px 16px 12px"><div class="k">დღეს დარჩა'+(dcat?' · '+dcat.n:'')+'</div><div class="big num'+(rest<0?' neg':'')+'" style="font-size:34px;margin:2px 0 12px">'+money(rest)+'</div>'+
       '<div class="track"><i style="width:'+(allow?Math.min(100,todaySp/allow*100):100)+'%;background:'+(rest<0?'var(--bad)':'var(--accent)')+'"></i></div>'+
       '<div class="cap"><span class="num">დღეს დახარჯულია '+money(todaySp)+'</span><span class="num">'+(dLeft<=0?(dcat?'ლიმიტი ამოიწურა':'თვის თანხა ამოიწურა'):'დღიური ლიმიტი '+money(allow))+'</span></div>'+
-      '<div class="sub num" style="margin-top:6px">'+(dcat?'თვის ლიმიტიდან დარჩა ':'დარჩენილი ')+money(dLeft)+' · თვის ბოლომდე '+dl+' დღე</div></div>'+
+      '<div class="sub num" style="margin-top:6px">'+(dcat?'თვის ლიმიტიდან დარჩა ':'დარჩენილი ')+money(dLeft)+' · თვის ბოლომდე '+dl+' დღე'+(est&&!dcat?' · წინა თვის შემოსავლის მიხედვით':'')+'</div></div>'+
       '<div class="quick" style="padding:0 16px 14px;margin:0">'+dchips+'</div></div></div>';
   }
   return h;
@@ -464,7 +483,7 @@ function vSum(){
   var isCur=ui.month===curMonth,p=ui.month.split('-'),dim=new Date(+p[0],+p[1],0).getDate();
   var elapsed=isCur?now.getDate():(ui.month<curMonth?dim:0);
   var avg=elapsed?spent/elapsed:0,proj=isCur?avg*dim:spent;
-  var h='<h1>მიმოხილვა</h1>'+monthNav()+segHtml()+banner();
+  var h='<div class="titlerow"><h1>მიმოხილვა</h1><div class="titlegroup">'+monthNav()+'</div></div>'+segHtml()+banner();
   if(ui.sumView==='in')return h+incomeHtml();
   var seg='';CATS.forEach(function(c){if(cc[c.id]){seg+='<i style="width:'+(spent?cc[c.id]/spent*100:0)+'%;background:'+c.c+'"></i>'}});
   h+='<div class="section"><div class="card"><div class="hero"><div class="k">დარჩენილი</div><div class="big num'+(left<0?' neg':'')+'" data-count="'+left+'">'+money(left)+'</div>'+
@@ -567,6 +586,18 @@ function lsHtml(){
       '<div class="section"><div class="card"><div class="field"><label for="r_date">თარიღი</label><input id="r_date" type="date" value="'+s.date+'" max="'+todayStr+'" style="width:auto"></div></div><div class="foot">ჩარიცხვა ავტომატურად გამოჩნდება ხარჯებში, კატეგორიაში „სესხის დაბრუნება“.</div></div></div></div>';
   }
   if(s.kind==='bank')return bankSheet(s,top);
+  if(s.kind==='month'){
+    var minY=+monthRange()[0].slice(0,4),curY=now.getFullYear(),yy=s.year,has={};
+    S.expenses.forEach(function(e){has[e.date.slice(0,7)]=1});
+    var grid=MONTHS.map(function(mn,i){
+      var ym=yy+'-'+pad(i+1),dis=ym>curMonth,sel=ym===ui.month;
+      return '<button class="mcell'+(sel?' sel':'')+'" data-act="pickym" data-ym="'+ym+'"'+(dis?' disabled':'')+'>'+mn.slice(0,3)+(has[ym]?'<i></i>':'')+'</button>';
+    }).join('');
+    return '<div class="scrim'+(s.fresh?' enter':'')+'" data-act="closeSheet"><div class="sheet compact" role="dialog" aria-modal="true" aria-label="თვის არჩევა"><div class="grab"></div>'+
+      '<div class="sheethead"><button data-act="closeSheet">დახურვა</button><b>თვის არჩევა</b><button data-act="thismonth" style="font-weight:600">დღეს</button></div>'+
+      '<div class="yearrow"><button data-act="myear" data-d="-1"'+(yy<=minY?' disabled':'')+' aria-label="წინა წელი">‹</button><b class="num">'+yy+'</b><button data-act="myear" data-d="1"'+(yy>=curY?' disabled':'')+' aria-label="შემდეგი წელი">›</button></div>'+
+      '<div class="mgrid">'+grid+'</div></div></div>';
+  }
   if(s.kind==='recur'){
     var rl=s.l,rchips=CATS.filter(function(c){return c.id!=='loan'}).map(function(c){return '<button class="chip" data-act="rcpick" data-cat="'+c.id+'" aria-pressed="'+(rl.cat===c.id)+'">'+badge(c)+c.n+'</button>'}).join('');
     return top+'<div class="sheethead"><button data-act="closeSheet">გაუქმება</button><b>'+(s.editing?'განმეორებადი ხარჯი':'ახალი განმეორებადი')+'</b><button data-act="saveRecur" style="font-weight:600">შენახვა</button></div>'+
@@ -595,7 +626,7 @@ function render(){
   var v=ui.tab==='days'?vDays():ui.tab==='sum'?vSum():ui.tab==='loans'?vLoans():vPlan();
   var app=document.getElementById('app');
   app.innerHTML=v;app.className='';
-  if(ui.tab==='days'&&(ui.q||'').trim()){var mn0=app.querySelector('.months');if(mn0)mn0.hidden=true}
+  if(ui.tab==='days'&&(ui.q||'').trim()){var mn0=app.querySelector('.monthpill');if(mn0)mn0.hidden=true}
   if(ui.anim){
     var kids=app.children;for(var k=0;k<kids.length;k++)kids[k].style.setProperty('--i',k);
     app.className='a-'+ui.anim;
@@ -774,12 +805,18 @@ document.addEventListener('pointermove',function(ev){
     if(Math.abs(dx)<8)return;
     swipe.moved=true;
   }
-  swipe.t=Math.max(-SW,Math.min(0,swipe.base+dx));
+  swipe.t=Math.max(-swipe.row.offsetWidth,Math.min(0,swipe.base+dx));
   swipe.row.style.transform='translateX('+swipe.t+'px)';
 });
 function endSwipe(){
   if(!swipe)return;var s=swipe;swipe=null;if(!s.moved)return;
-  lastSwipe=Date.now();var open=s.t<-SW/2;
+  lastSwipe=Date.now();
+  if(s.t<=-s.row.offsetWidth*0.5){
+    var did2=s.row.dataset.id;
+    S.expenses=S.expenses.filter(function(x){return x.id!==did2});
+    save();render();toast('წაიშალა');return;
+  }
+  var open=s.t<-SW/2;
   s.sw.classList.toggle('open',open);s.row.style.transform=open?'translateX(-'+SW+'px)':'';
 }
 document.addEventListener('pointerup',endSwipe);
@@ -801,6 +838,9 @@ document.addEventListener('click',function(ev){
   else if(a==='swipedel'){var did=t.dataset.id;S.expenses=S.expenses.filter(function(x){return x.id!==did});save();render();toast('წაიშალა')}
   else if(a==='pick'){readSheet();var pk=t.dataset.cat;ui.sheet.e.type=pk==='income'?'in':'out';ui.sheet.e.cat=pk;render()}
   else if(a==='type'){readSheet();ui.sheet.e.type=t.dataset.type;render()}
+  else if(a==='monthpicker'){ui.ls={kind:'month',fresh:true,year:+ui.month.slice(0,4)};render()}
+  else if(a==='myear'){ui.ls.year+=+t.dataset.d;render()}
+  else if(a==='pickym'||a==='thismonth'){ui.chartScroll=undefined;ui.month=a==='thismonth'?curMonth:t.dataset.ym;ui.ls=null;render()}
   else if(a==='bankimport'){
     var bs=ui.ls,bsel=bs.items.filter(function(x){return !x.dup&&bs.on[x.g]});
     if(!bsel.length)return;
@@ -914,7 +954,7 @@ document.addEventListener('input',function(ev){
   if(ev.target.id==='q'){
     ui.q=ev.target.value;var on=!!ui.q.trim();
     var ql=document.getElementById('dayslist');if(ql)ql.innerHTML=daysList();
-    var qm=document.querySelector('#app .months');if(qm)qm.hidden=on;
+    var qm=document.querySelector('#app .monthpill');if(qm)qm.hidden=on;
     var qc=document.getElementById('daycards');if(qc)qc.hidden=on;
     return;
   }
